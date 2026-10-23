@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 编解码工具</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb;
+    color: #1f2430;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 60px;
+  }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  header h1 span { color: #3b6fe0; }
+  header p { margin-top: 8px; color: #6b7280; font-size: 14px; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(31, 36, 48, .08);
+    padding: 24px;
+    width: 100%;
+    max-width: 860px;
+  }
+  label { display: block; font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    resize: vertical;
+    border: 1px solid #d8dde8;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    outline: none;
+    transition: border-color .15s;
+    word-break: break-all;
+  }
+  textarea:focus { border-color: #3b6fe0; }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 18px 0;
+  }
+  button {
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 14px;
+    transition: opacity .15s, background .15s;
+  }
+  .btn-primary { background: #3b6fe0; color: #fff; }
+  .btn-primary:hover { background: #2f5fc9; }
+  .btn-ghost { background: #eef1f7; color: #374151; }
+  .btn-ghost:hover { background: #e0e5f0; }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #9aa1b1;
+    margin-top: 6px;
+  }
+  .msg { min-height: 20px; text-align: center; font-size: 13px; margin-top: 10px; }
+  .msg.ok { color: #1d9d63; }
+  .msg.err { color: #d64545; }
+  footer { margin-top: 30px; font-size: 12px; color: #9aa1b1; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Base64 <span>编解码工具</span></h1>
+    <p>在浏览器本地完成编码与解码，支持中文等 UTF-8 文本，内容不会上传到任何服务器</p>
+  </header>
+
+  <div class="card">
+    <label for="input">输入</label>
+    <textarea id="input" placeholder="在这里输入要编码的原文，或要解码的 Base64 字符串…"></textarea>
+    <div class="meta"><span id="inCount">0 字符</span><span>UTF-8</span></div>
+
+    <div class="toolbar">
+      <button class="btn-primary" id="btnEncode">编 码 →</button>
+      <button class="btn-primary" id="btnDecode">← 解 码</button>
+      <button class="btn-ghost" id="btnSwap">交换</button>
+      <button class="btn-ghost" id="btnClear">清空</button>
+    </div>
+
+    <label for="output">输出</label>
+    <textarea id="output" readonly placeholder="结果会显示在这里…"></textarea>
+    <div class="meta"><span id="outCount">0 字符</span><button class="btn-ghost" id="btnCopy" style="padding:4px 14px;font-size:12px;">复制结果</button></div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <footer>Base64 Encode / Decode · 纯前端实现</footer>
+
+<script>
+  var input = document.getElementById('input');
+  var output = document.getElementById('output');
+  var msg = document.getElementById('msg');
+  var inCount = document.getElementById('inCount');
+  var outCount = document.getElementById('outCount');
+
+  function refreshCounts() {
+    inCount.textContent = input.value.length + ' 字符';
+    outCount.textContent = output.value.length + ' 字符';
+  }
+  function showMsg(text, ok) {
+    msg.textContent = text;
+    msg.className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+  function encodeText(text) {
+    var bytes = new TextEncoder().encode(text);
+    var bin = '';
+    bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+    return btoa(bin);
+  }
+  function decodeText(b64) {
+    var cleaned = b64.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9+/=_-]+$/.test(cleaned)) throw new Error('invalid chars');
+    var bin = atob(cleaned.replace(/-/g, '+').replace(/_/g, '/'));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  }
+
+  document.getElementById('btnEncode').addEventListener('click', function () {
+    if (!input.value) { showMsg('先输入点内容再编码。', false); return; }
+    output.value = encodeText(input.value);
+    showMsg('编码完成。', true);
+    refreshCounts();
+  });
+  document.getElementById('btnDecode').addEventListener('click', function () {
+    if (!input.value.trim()) { showMsg('先输入 Base64 字符串再解码。', false); return; }
+    try {
+      output.value = decodeText(input.value);
+      showMsg('解码完成。', true);
+    } catch (e) {
+      output.value = '';
+      showMsg('这串内容不是有效的 Base64（或解码后不是 UTF-8 文本），检查一下再试。', false);
+    }
+    refreshCounts();
+  });
+  document.getElementById('btnSwap').addEventListener('click', function () {
+    var t = input.value;
+    input.value = output.value;
+    output.value = t;
+    showMsg('', true);
+    refreshCounts();
+  });
+  document.getElementById('btnClear').addEventListener('click', function () {
+    input.value = '';
+    output.value = '';
+    showMsg('', true);
+    refreshCounts();
+  });
+  document.getElementById('btnCopy').addEventListener('click', function () {
+    if (!output.value) { showMsg('还没有可复制的结果。', false); return; }
+    navigator.clipboard.writeText(output.value).then(function () {
+      showMsg('已复制到剪贴板。', true);
+    }, function () {
+      output.select();
+      document.execCommand('copy');
+      showMsg('已复制到剪贴板。', true);
+    });
+  });
+  input.addEventListener('input', refreshCounts);
+  refreshCounts();
+</script>
+</body>
+</html>
